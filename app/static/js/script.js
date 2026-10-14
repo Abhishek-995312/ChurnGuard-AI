@@ -1,0 +1,88 @@
+const form = document.getElementById("predictionForm");
+const predictButton = document.getElementById("predictButton");
+const resultCard = document.getElementById("result");
+const predictionText = document.getElementById("prediction");
+const probabilityText = document.getElementById("probability");
+const riskText = document.getElementById("risk");
+const errorMessage = document.getElementById("errorMessage");
+
+form.addEventListener("submit", async function (event) {
+    // Prevent the browser from refreshing the page
+    event.preventDefault();
+
+    errorMessage.textContent = "";
+    resultCard.hidden = true;
+
+    // Read all customer details from the form
+    const formData = new FormData(form);
+    const customer = {};
+
+    for (const [key, value] of formData.entries()) {
+        customer[key] = value;
+    }
+
+    // Convert numeric fields from text to numbers
+    customer.SeniorCitizen = Number(customer.SeniorCitizen);
+    customer.tenure = Number(customer.tenure);
+    customer.MonthlyCharges = Number(customer.MonthlyCharges);
+    customer.TotalCharges = Number(customer.TotalCharges);
+
+    predictButton.disabled = true;
+    predictButton.textContent = "Analyzing Customer...";
+
+    try {
+        // Send customer details to the FastAPI backend
+        const response = await fetch("/api/predict", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(customer)
+        });
+
+        const data = await response.json();
+
+        // Display backend validation or prediction errors
+        if (!response.ok) {
+            throw new Error(
+                data.detail
+                    ? JSON.stringify(data.detail)
+                    : "Unable to predict customer churn."
+            );
+        }
+
+        // Show prediction results
+        predictionText.textContent =
+            "Prediction: " + data.prediction;
+
+        probabilityText.textContent =
+            (data.churn_probability * 100).toFixed(2) + "%";
+
+        riskText.textContent = data.risk_level;
+
+        // Add simple risk-based colors
+        if (data.risk_level === "High") {
+            riskText.style.color = "#dc2626";
+        } else if (data.risk_level === "Medium") {
+            riskText.style.color = "#d97706";
+        } else {
+            riskText.style.color = "#16a34a";
+        }
+
+        resultCard.hidden = false;
+
+        // Scroll down to the prediction result
+        resultCard.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
+
+    } catch (error) {
+        errorMessage.textContent =
+            "Error: " + error.message;
+
+    } finally {
+        predictButton.disabled = false;
+        predictButton.textContent = "Predict Customer Churn";
+    }
+});
