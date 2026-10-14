@@ -21,15 +21,6 @@ app.mount(
     name="static"
 )
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["null"],
-#     allow_methods=["POST"],
-#     allow_headers=["Content-Type"],
-# )
-
-
-
 @app.get("/")
 def home():
     return {
